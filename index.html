@@ -408,7 +408,18 @@
 </div>
 
 <div class="divisor"></div>
-<div class="sec-titulo">Emergencias de la Compañía 202</div>
+
+<!-- Banner monitor activo -->
+<div id="banner-activo" style="margin:10px 12px 0;border-radius:12px;padding:10px 14px;background:#EAF3DE;border:1px solid #B5D98A;display:flex;align-items:center;gap:10px;">
+  <div id="banner-dot" style="width:10px;height:10px;border-radius:50%;background:#639922;flex-shrink:0;animation:pulso 1.4s infinite;"></div>
+  <div style="flex:1;">
+    <div style="font-size:13px;font-weight:600;color:#3B6D11;" id="banner-titulo">Monitor activo</div>
+    <div style="font-size:11px;color:#5A8A2A;margin-top:1px;">Próxima consulta en <span id="cuenta-regresiva">30</span> s &nbsp;·&nbsp; Mantén la app abierta</div>
+  </div>
+  <div style="font-size:22px;">🛡️</div>
+</div>
+
+<div class="sec-titulo" style="margin-top:12px;">Emergencias de la Compañía 202</div>
 
 <!-- Lista -->
 <div class="lista" id="lista">
@@ -483,6 +494,12 @@ function toggleMonitor() {
     btn.className = 'btn peligro';
     dot.className = 'dot pulsando';
     primeraVez = true;
+    const ba2 = document.getElementById('banner-activo');
+    const bd2 = document.getElementById('banner-dot');
+    const bt2 = document.getElementById('banner-titulo');
+    if(ba2){ ba2.style.background='#EAF3DE'; ba2.style.borderColor='#B5D98A'; }
+    if(bd2){ bd2.style.background='#639922'; bd2.style.animation='pulso 1.4s infinite'; }
+    if(bt2){ bt2.textContent='Monitor activo'; bt2.style.color='#3B6D11'; }
     iniciarCiclo();
   } else {
     btn.textContent = '▶ Reanudar';
@@ -491,6 +508,12 @@ function toggleMonitor() {
     document.getElementById('status-txt').textContent = 'Monitor pausado';
     clearTimeout(timerId);
     clearInterval(tickId);
+    const ba = document.getElementById('banner-activo');
+    const bd = document.getElementById('banner-dot');
+    const bt = document.getElementById('banner-titulo');
+    if(ba){ ba.style.background='#FAEEDA'; ba.style.borderColor='#FAC775'; }
+    if(bd){ bd.style.background='#EF9F27'; bd.style.animation='none'; }
+    if(bt){ bt.textContent='Monitor pausado'; bt.style.color='#854F0B'; }
   }
 }
 
@@ -681,6 +704,7 @@ function iniciarCiclo() {
   tickId = setInterval(() => {
     if (!monitoreando) return;
     segRestantes = Math.max(0, segRestantes - 1);
+    const _cr = document.getElementById('cuenta-regresiva'); if(_cr) _cr.textContent = segRestantes;
     document.getElementById('progreso').style.width =
       Math.round((segRestantes / intervaloSeg) * 100) + '%';
   }, 1000);
