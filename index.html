@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#A32D2D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bomberos 202">
+<title>Monitor Bomberos 202</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --rojo: #A32D2D;
+    --rojo-mid: #E24B4A;
+    --rojo-claro: #FCEBEB;
+    --rojo-borde: #F09595;
+    --naranja: #854F0B;
+    --naranja-claro: #FAEEDA;
+    --naranja-borde: #FAC775;
+    --verde: #3B6D11;
+    --verde-mid: #639922;
+    --gris-fondo: #F8F7F4;
+    --gris-surface: #F1EFE8;
+    --gris-borde: #D3D1C7;
+    --gris-med: #888780;
+    --gris-texto: #5F5E5A;
+    --texto: #2C2C2A;
+    --blanco: #FFFFFF;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--gris-fondo);
+    color: var(--texto);
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: var(--rojo);
+    color: var(--blanco);
+    padding: 14px 16px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .header-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .header-titulo {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .header-sub {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 1px;
+  }
+
+  /* Status pill */
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--blanco);
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #97C459;
+    flex-shrink: 0;
+  }
+  .dot.pulsando { animation: pulso 1.4s infinite; }
+  @keyframes pulso { 0%,100%{opacity:1}50%{opacity:0.2} }
+  .dot.error { background: #F09595; animation: none; }
+  .dot.pausa { background: #FAC775; animation: none; }
+
+  /* Progress bar */
+  .progreso-wrap {
+    height: 3px;
+    background: rgba(255,255,255,0.2);
+    overflow: hidden;
+  }
+  .progreso-bar {
+    height: 100%;
+    background: rgba(255,255,255,0.7);
+    transition: width 1s linear;
+  }
+
+  /* Contadores */
+  .contadores {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px 12px 0;
+  }
+  .cnt {
+    background: var(--blanco);
+    border: 0.5px solid var(--gris-borde);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .cnt .num {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--texto);
+    line-height: 1;
+  }
+  .cnt .lbl {
+    font-size: 10px;
+    color: var(--gris-texto);
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+
+  /* Controles */
+  .controles {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .controles::-webkit-scrollbar { display: none; }
+  .btn {
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 20px;
+    border: 1px solid var(--gris-borde);
+    background: var(--blanco);
+    color: var(--texto);
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn.peligro {
+    background: var(--rojo-claro);
+    color: var(--rojo);
+    border-color: var(--rojo-borde);
+  }
+  .btn.pausa-btn {
+    background: var(--naranja-claro);
+    color: var(--naranja);
+    border-color: var(--naranja-borde);
+  }
+
+  /* Intervalo */
+  .intervalo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px 10px;
+    font-size: 13px;
+    color: var(--gris-texto);
+  }
+  .intervalo-row input[type=range] {
+    flex: 1;
+    accent-color: var(--rojo);
+    height: 4px;
+  }
+  .intervalo-row span {
+    font-weight: 600;
+    color: var(--texto);
+    min-width: 36px;
+  }
+
+  /* Divisor */
+  .divisor {
+    height: 0.5px;
+    background: var(--gris-borde);
+    margin: 0 12px;
+  }
+  .sec-titulo {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gris-med);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 10px 12px 6px;
+  }
+
+  /* Cards emergencia */
+  .lista {
+    padding: 0 12px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card {
+    background: var(--blanco);
+    border: 0.5px solid var(--gris-borde);
+    border-radius: 14px;
+    padding: 12px 14px;
+    animation: aparecer 0.3s ease;
+  }
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card.nueva {
+    border-color: var(--rojo-borde);
+    border-width: 1.5px;
+    background: #fffafa;
+  }
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .badges { display: flex; gap: 4px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .badge.nueva-b  { background: var(--rojo);        color: var(--blanco); }
+  .badge.atend    { background: var(--naranja-claro); color: var(--naranja); }
+  .badge.cerrado  { background: var(--gris-surface);  color: var(--gris-texto); }
+  .nro-parte { font-size: 11px; color: var(--gris-med); }
+  .direccion {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--texto);
+    line-height: 1.35;
+    margin-bottom: 3px;
+  }
+  .tipo {
+    font-size: 12px;
+    color: var(--gris-texto);
+    line-height: 1.4;
+    margin-bottom: 5px;
+  }
+  .hora { font-size: 11px; color: var(--gris-med); margin-bottom: 6px; }
+  .maquinas { display: flex; flex-wrap: wrap; gap: 4px; }
+  .maq {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 0.5px solid var(--gris-borde);
+    color: var(--gris-texto);
+    background: var(--gris-surface);
+  }
+  .maq.c202 {
+    background: var(--rojo-claro);
+    color: var(--rojo);
+    border-color: var(--rojo-borde);
+    font-weight: 600;
+  }
+
+  /* Vacío */
+  .vacio {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--gris-texto);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .vacio .icono { font-size: 36px; margin-bottom: 12px; }
+
+  /* ALERTA overlay */
+  .alerta-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(163,45,45,0.92);
+    z-index: 999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: var(--blanco);
+  }
+  .alerta-overlay.visible { display: flex; }
+  .alerta-icono { font-size: 64px; margin-bottom: 16px; animation: shake 0.5s infinite; }
+  @keyframes shake {
+    0%,100%{transform:rotate(-5deg)}
+    50%{transform:rotate(5deg)}
+  }
+  .alerta-titulo { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .alerta-msg { font-size: 15px; opacity: 0.9; margin-bottom: 24px; line-height: 1.5; }
+  .btn-cerrar-alerta {
+    background: var(--blanco);
+    color: var(--rojo);
+    border: none;
+    border-radius: 24px;
+    padding: 12px 32px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Instalar banner */
+  .instalar-banner {
+    display: none;
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: var(--texto);
+    color: var(--blanco);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 13px;
+    z-index: 200;
+    align-items: center;
+    gap: 10px;
+  }
+  .instalar-banner.visible { display: flex; }
+  .instalar-banner button {
+    margin-left: auto;
+    background: var(--blanco);
+    color: var(--texto);
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ALERTA overlay pantalla completa -->
+<div class="alerta-overlay" id="alerta-overlay">
+  <div class="alerta-icono">🚒</div>
+  <div class="alerta-titulo">¡EMERGENCIA!</div>
+  <div class="alerta-msg" id="alerta-msg">Compañía N°202 — Jesús María</div>
+  <button class="btn-cerrar-alerta" onclick="cerrarAlerta()">Ver detalles</button>
+</div>
+
+<!-- Banner instalar PWA (Android Chrome) -->
+<div class="instalar-banner" id="instalar-banner">
+  <span>📲 Agregar a pantalla de inicio</span>
+  <button id="btn-instalar">Instalar</button>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="header-icon">🚒</div>
+    <div>
+      <div class="header-titulo">Compañía N°202 — Jesús María</div>
+      <div class="header-sub">Sistema 116 · CGBVP</div>
+    </div>
+  </div>
+  <div class="status-pill">
+    <div class="dot pulsando" id="dot"></div>
+    <span id="status-txt">Iniciando monitor...</span>
+    <span style="margin-left:auto;opacity:0.7;font-size:11px;" id="ultima-act">—</span>
+  </div>
+</div>
+
+<!-- Progreso -->
+<div class="progreso-wrap">
+  <div class="progreso-bar" id="progreso" style="width:100%"></div>
+</div>
+
+<!-- Contadores -->
+<div class="contadores">
+  <div class="cnt"><div class="num" id="cnt-activas">—</div><div class="lbl">activas ahora</div></div>
+  <div class="cnt"><div class="num" id="cnt-nuevas">—</div><div class="lbl">nuevas (última act.)</div></div>
+  <div class="cnt"><div class="num" id="cnt-hoy">—</div><div class="lbl">últimas 24 h</div></div>
+</div>
+
+<!-- Controles -->
+<div class="controles">
+  <button class="btn peligro" id="btn-monitor" onclick="toggleMonitor()">⏸ Detener</button>
+  <button class="btn" onclick="fetchAhora()">🔄 Actualizar</button>
+  <button class="btn" id="btn-sonido" onclick="toggleSonido()">🔔 Sonido ON</button>
+  <button class="btn" onclick="probarAlarma()">🔊 Probar</button>
+</div>
+
+<!-- Intervalo -->
+<div class="intervalo-row">
+  <span style="font-weight:400;color:var(--gris-texto)">Cada</span>
+  <input type="range" id="intervalo" min="15" max="120" value="30" step="5">
+  <span id="intervalo-out">30 s</span>
+</div>
+
+<div class="divisor"></div>
+<div class="sec-titulo">Emergencias de la Compañía 202</div>
+
+<!-- Lista -->
+<div class="lista" id="lista">
+  <div class="vacio"><div class="icono">🔍</div>Consultando el sistema de emergencias...</div>
+</div>
+
+<script>
+const PROXY = 'https://api.allorigins.win/get?url=';
+const URL_B = 'https://sgonorte.bomberosperu.gob.pe/24horas';
+
+const PREFIJOS = ['M202','AMB-202','AMB202','RES-202','RESPE-202','RESLIG-202','AUX-202','AUX202','USAC-202','USAC202'];
+
+let monitoreando = true;
+let sonidoOn = true;
+let conocidos = new Set();
+let primeraVez = true;
+let intervaloSeg = 30;
+let segRestantes = 30;
+let timerId = null;
+let tickId = null;
+let audioCtx = null;
+let deferredPrompt = null;
+
+function esUnidad202(txt) {
+  const t = txt.toUpperCase();
+  for (const p of PREFIJOS) {
+    let idx = t.indexOf(p);
+    while (idx !== -1) {
+      const sig = t[idx + p.length] || '';
+      if (!sig || sig === ' ' || sig === '*' || sig === '\n' || sig === '-' || /\d/.test(sig)) return true;
+      idx = t.indexOf(p, idx + 1);
+    }
+  }
+  return false;
+}
+
+function esMaq202(m) { return esUnidad202(m); }
+
+function sonar() {
+  if (!sonidoOn) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    [880,0,880,0,880,660,880].forEach((freq, i) => {
+      if (!freq) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      const t = audioCtx.currentTime + i * 0.28;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.22, t + 0.04);
+      gain.gain.linearRampToValueAtTime(0, t + 0.22);
+      osc.start(t); osc.stop(t + 0.25);
+    });
+  } catch(e) {}
+}
+
+function probarAlarma() { sonar(); }
+
+function toggleSonido() {
+  sonidoOn = !sonidoOn;
+  document.getElementById('btn-sonido').textContent = (sonidoOn ? '🔔' : '🔕') + ' Sonido ' + (sonidoOn ? 'ON' : 'OFF');
+}
+
+function toggleMonitor() {
+  monitoreando = !monitoreando;
+  const btn = document.getElementById('btn-monitor');
+  const dot = document.getElementById('dot');
+  if (monitoreando) {
+    btn.textContent = '⏸ Detener';
+    btn.className = 'btn peligro';
+    dot.className = 'dot pulsando';
+    primeraVez = true;
+    iniciarCiclo();
+  } else {
+    btn.textContent = '▶ Reanudar';
+    btn.className = 'btn pausa-btn';
+    dot.className = 'dot pausa';
+    document.getElementById('status-txt').textContent = 'Monitor pausado';
+    clearTimeout(timerId);
+    clearInterval(tickId);
+  }
+}
+
+function setStatus(txt, tipo) {
+  document.getElementById('status-txt').textContent = txt;
+  if (!monitoreando) return;
+  const dot = document.getElementById('dot');
+  if (tipo === 'error') dot.className = 'dot error';
+  else if (tipo === 'alerta') dot.className = 'dot';
+  else dot.className = 'dot pulsando';
+}
+
+function limpiarTexto(cel) {
+  return (cel ? cel.textContent : '').replace(/\s+/g, ' ').trim();
+}
+
+function parseEmergencias(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Encontrar la tabla correcta buscando la que tiene "Nro Parte" en el header
+  let tablaOk = null;
+  doc.querySelectorAll('table').forEach(t => {
+    if (t.textContent.includes('Nro Parte') || t.textContent.includes('Direcci')) {
+      tablaOk = t;
+    }
+  });
+  if (!tablaOk) return [];
+
+  // Detectar índices de columna desde el header (th o primera fila con th)
+  let cols = { nro:1, fecha:2, direccion:3, tipo:4, estado:5, maquinas:6 };
+  const headerFila = tablaOk.querySelector('tr');
+  if (headerFila) {
+    const ths = headerFila.querySelectorAll('th, td');
+    ths.forEach((th, i) => {
+      const t = th.textContent.toLowerCase();
+      if (t.includes('parte'))      cols.nro       = i;
+      if (t.includes('fecha'))      cols.fecha     = i;
+      if (t.includes('direcci'))    cols.direccion = i;
+      if (t.includes('tipo'))       cols.tipo      = i;
+      if (t.includes('estado'))     cols.estado    = i;
+      if (t.includes('quina'))      cols.maquinas  = i;
+    });
+  }
+
+  const result = [];
+  tablaOk.querySelectorAll('tr').forEach(fila => {
+    const celdas = fila.querySelectorAll('td');
+    if (celdas.length < 6) return;
+
+    // Leer maquinas — intentar índice detectado y también buscar en toda la fila
+    const maquinas = limpiarTexto(celdas[cols.maquinas]);
+    // Buscar en toda la fila si el índice normal no contiene unidades 202
+    let filaCompleta = limpiarTexto(fila);
+    if (!esUnidad202(filaCompleta)) return;
+
+    // Obtener cada campo con fallback: si el índice detectado está vacío, buscar por contenido
+    const nro       = limpiarTexto(celdas[cols.nro])       || limpiarTexto(celdas[1]);
+    const fecha     = limpiarTexto(celdas[cols.fecha])     || limpiarTexto(celdas[2]);
+    const direccion = limpiarTexto(celdas[cols.direccion]) || limpiarTexto(celdas[3]);
+    const tipo      = limpiarTexto(celdas[cols.tipo])      || limpiarTexto(celdas[4]);
+    const estado    = limpiarTexto(celdas[cols.estado])    || limpiarTexto(celdas[5]);
+
+    // Limpiar coordenadas de la dirección: quitar "(-xx.xxx,-yy.yyy)"
+    const direccionLimpia = direccion.replace(/\(-?\d+\.?\d*,-?\d+\.?\d*\)/g, '').replace(/\s+/g, ' ').trim();
+
+    if (!nro || nro === '#') return;
+    result.push({ nro, fecha, direccion: direccionLimpia, tipo, estado, maquinas });
+  });
+  return result;
+}
+
+function renderLista(emergencias, nuevasIds) {
+  const lista = document.getElementById('lista');
+  if (!emergencias.length) {
+    lista.innerHTML = '<div class="vacio"><div class="icono">✅</div>Sin emergencias de la Compañía 202<br>en las últimas 24 horas</div>';
+    return;
+  }
+  lista.innerHTML = emergencias.map(e => {
+    const esNueva = nuevasIds.has(e.nro);
+    const atend = e.estado.toLowerCase().includes('atend');
+    const maqHTML = e.maquinas.split('*').map(m => m.trim()).filter(Boolean).map(m =>
+      `<span class="maq${esMaq202(m) ? ' c202' : ''}">${m}</span>`
+    ).join('');
+    return `
+    <div class="card${esNueva ? ' nueva' : ''}">
+      <div class="card-top">
+        <div class="badges">
+          ${esNueva ? '<span class="badge nueva-b">NUEVA</span>' : ''}
+          <span class="badge ${atend ? 'atend' : 'cerrado'}">${e.estado}</span>
+        </div>
+        <span class="nro-parte">#${e.nro}</span>
+      </div>
+      <div class="direccion">${e.direccion}</div>
+      <div class="tipo">${e.tipo}</div>
+      <div class="hora">${e.fecha}</div>
+      <div class="maquinas">${maqHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+function mostrarAlerta(emergenciasNuevas) {
+  const overlay = document.getElementById('alerta-overlay');
+  const msg = document.getElementById('alerta-msg');
+
+  // Construir HTML con todos los datos de cada emergencia nueva
+  msg.innerHTML = emergenciasNuevas.map(e => `
+    <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;margin-bottom:10px;text-align:left;">
+      <div style="font-size:13px;opacity:0.85;margin-bottom:4px;">#${e.nro} · ${e.fecha}</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;line-height:1.3;">${e.direccion}</div>
+      <div style="font-size:13px;opacity:0.9;line-height:1.4;margin-bottom:6px;">${e.tipo}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;">
+        ${e.maquinas.split('*').map(m=>m.trim()).filter(Boolean).map(m=>
+          `<span style="background:rgba(255,255,255,0.25);border-radius:20px;padding:2px 9px;font-size:12px;font-weight:600;">${m}</span>`
+        ).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  overlay.classList.add('visible');
+  sonar();
+  if ('vibrate' in navigator) navigator.vibrate([300,100,300,100,300,100,500]);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    emergenciasNuevas.forEach(e => {
+      new Notification('🚒 Bomberos 202 — ' + e.estado, {
+        body: e.direccion + '\n' + e.tipo.split('/')[0].trim(),
+        icon: 'icon-192.png'
+      });
+    });
+  }
+}
+
+function cerrarAlerta() {
+  document.getElementById('alerta-overlay').classList.remove('visible');
+}
+
+async function fetchAhora() {
+  setStatus('Consultando...', 'ok');
+  try {
+    const resp = await fetch(PROXY + encodeURIComponent(URL_B));
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    if (!json.contents) throw new Error('Sin contenido');
+
+    const emergencias = parseEmergencias(json.contents);
+    const nuevasIds = new Set();
+    let hayNueva = false;
+
+    emergencias.forEach(e => {
+      if (!conocidos.has(e.nro)) {
+        nuevasIds.add(e.nro);
+        conocidos.add(e.nro);
+        if (!primeraVez) hayNueva = true;
+      }
+    });
+    primeraVez = false;
+
+    const activas = emergencias.filter(e => e.estado.toLowerCase().includes('atend')).length;
+    document.getElementById('cnt-activas').textContent = activas;
+    document.getElementById('cnt-nuevas').textContent = hayNueva ? nuevasIds.size : 0;
+    document.getElementById('cnt-hoy').textContent = emergencias.length;
+    document.getElementById('ultima-act').textContent = new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+
+    renderLista(emergencias, hayNueva ? nuevasIds : new Set());
+
+    if (hayNueva) {
+      const emergenciasNuevas = emergencias.filter(e => nuevasIds.has(e.nro));
+      mostrarAlerta(emergenciasNuevas);
+      setStatus('¡ALERTA! ' + nuevasIds.size + ' nueva(s) — Cía. 202', 'alerta');
+    } else {
+      setStatus('Monitoreando · sin novedades', 'ok');
+    }
+  } catch(err) {
+    setStatus('Error de conexión — reintentando...', 'error');
+  }
+}
+
+function iniciarCiclo() {
+  clearTimeout(timerId);
+  clearInterval(tickId);
+  segRestantes = intervaloSeg;
+  fetchAhora();
+  timerId = setInterval(() => {
+    if (!monitoreando) return;
+    segRestantes = intervaloSeg;
+    fetchAhora();
+  }, intervaloSeg * 1000);
+  tickId = setInterval(() => {
+    if (!monitoreando) return;
+    segRestantes = Math.max(0, segRestantes - 1);
+    document.getElementById('progreso').style.width =
+      Math.round((segRestantes / intervaloSeg) * 100) + '%';
+  }, 1000);
+}
+
+document.getElementById('intervalo').addEventListener('input', function() {
+  intervaloSeg = parseInt(this.value);
+  document.getElementById('intervalo-out').textContent = intervaloSeg + ' s';
+  if (monitoreando) iniciarCiclo();
+});
+
+// Pedir permiso notificaciones
+if ('Notification' in window && Notification.permission === 'default') {
+  setTimeout(() => Notification.requestPermission(), 3000);
+}
+
+// Registrar service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// Banner instalar Android
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('instalar-banner').classList.add('visible');
+});
+document.getElementById('btn-instalar').addEventListener('click', () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    document.getElementById('instalar-banner').classList.remove('visible');
+  });
+});
+
+iniciarCiclo();
+</script>
+</body>
+</html>
